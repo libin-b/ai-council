@@ -59,6 +59,11 @@ class Orchestrator:
             # Assuming 'prompts' is an object or module with a format_for_critique method
             critique_prompt = prompts.format_for_critique(valid_results, question=question)
             
+            # Wrapper to keep track of which model is critiquing
+            async def fetch_critique(model, prompt):
+                resp = await model.generate_response(prompt)
+                return model, resp
+
             critique_tasks = []
             for model in self.models:
                 # OPTIMIZATION: If a model failed in Round 1 (not in valid_results), 
@@ -66,10 +71,16 @@ class Orchestrator:
                 if model.name not in valid_results:
                     continue
 
-                critique_tasks.append(model.generate_response(critique_prompt))
+                critique_tasks.append(fetch_critique(model, critique_prompt))
 
-            critique_responses = await asyncio.gather(*critique_tasks)
-            critiques = {model.name: resp for model, resp in zip(self.models, critique_responses)}
+            critiques = {}
+            for future in asyncio.as_completed(critique_tasks):
+                model, resp = await future
+                critiques[model.name] = resp
+                
+                # Notify callback if provided
+                if "on_round2_result" in kwargs:
+                    kwargs["on_round2_result"](model.name, resp)
 
         # Assign critiques to results_r2 for consistency with original structure
         results_r2 = critiques
@@ -121,9 +132,26 @@ class Orchestrator:
             else:
                 final_answer = "❌ All models failed to synthesize an answer."
 
+        # Parse Structured Output if available
+        reasoning = "Check 'Synthesis Prompt' for raw input."
+        actual_final_answer = final_answer
+        
+        if "---FINAL ANSWER---" in final_answer:
+            parts = final_answer.split("---FINAL ANSWER---")
+            if len(parts) >= 2:
+                # Part 0 might be reasoning or preamble
+                preamble = parts[0].replace("---REASONING---", "").strip()
+                if preamble:
+                    reasoning = preamble
+                
+                # Part 1 is the actual answer
+                actual_final_answer = parts[1].strip()
+
         return {
             "question": question,
             "round1": results_r1,
             "round2": results_r2,
-            "final_answer": final_answer
+            "final_answer": actual_final_answer,
+            "moderator_reasoning": reasoning, # New field for UI
+            "synthesis_prompt": synthesis_prompt 
         }

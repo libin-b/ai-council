@@ -1,6 +1,7 @@
 import asyncio
 from typing import Optional
 from google import genai
+from google.genai import types
 from .base import BaseModel
 
 class GeminiModel(BaseModel):
@@ -19,10 +20,18 @@ class GeminiModel(BaseModel):
         # standard asyncio.to_thread is good for IO bound sync calls
         for attempt in range(max_retries):
             try:
+                # Check for Search Config (imported dynamically or passed in)
+                tools_config = None
+                from config import ENABLE_GOOGLE_SEARCH 
+                if ENABLE_GOOGLE_SEARCH:
+                     # Correct format for google-genai SDK v1.0+
+                     tools_config = [types.Tool(google_search=types.GoogleSearch())]
+
                 response = await asyncio.to_thread(
                     self.client.models.generate_content,
                     model=self.model_name,
-                    contents=prompt
+                    contents=prompt,
+                    config=types.GenerateContentConfig(tools=tools_config) if tools_config else None 
                 )
                 return response.text
             except Exception as e:

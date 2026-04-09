@@ -32,6 +32,16 @@ Your task is to synthesize the FINAL ANSWER.
 2. Resolve any disagreements based on technical facts.
 3. Provide the single best possible answer to the user's question.
 4. If code is requested, provide the final corrected code.
+
+CRITICAL INSTRUCTIONS:
+- You MUST use the following format:
+---REASONING---
+(Briefly explain your synthesis process, why you chose certain points, and how you resolved conflicts. Be concise.)
+---FINAL ANSWER---
+(The actual answer to the user. Direct and helpful.)
+
+- The "Final Answer" must be independent and not reference the reasoning section.
+- If the answer is simple (e.g., a greeting), the reasoning can be very short (e.g., "Standard greeting").
 """
 
 def format_for_critique(results: dict, question: str = "") -> str:

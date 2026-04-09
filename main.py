@@ -1,6 +1,6 @@
 import asyncio
 import sys
-from config import GEMINI_API_KEY, LOCAL_MODELS, GEMINI_MODEL_ID
+from config import GEMINI_API_KEY, OLLAMA_MODELS, GEMINI_MODEL_ID
 from models.gemini import GeminiModel
 from models.ollama_model import OllamaModel
 from core.orchestrator import Orchestrator
@@ -15,7 +15,7 @@ async def main_async():
     gemini_model = GeminiModel(api_key=GEMINI_API_KEY, model_name=GEMINI_MODEL_ID)
     
     models = [gemini_model]
-    for model_name in LOCAL_MODELS:
+    for model_name in OLLAMA_MODELS:
         models.append(OllamaModel(model_name))
         
     console.print(f"[dim]Loaded {len(models)} models: {[m.name for m in models]}[/dim]")
